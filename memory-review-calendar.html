@@ -677,7 +677,7 @@
           <div id="splitOutline" style="display:none">
             <div class="form-group">
               <label>粘贴课程大纲（支持缩进层级、编号、章节标记）</label>
-              <textarea id="outlineInput" placeholder="例如：&#10;英语四级&#10;  听力&#10;    短对话理解&#10;    长对话理解&#10;    短文听力&#10;  阅读&#10;    选词填空&#10;    长篇阅读&#10;    仔细阅读&#10;  写作&#10;    议论文&#10;    应用文&#10;  翻译&#10;    汉译英段落翻译" style="min-height:120px;font-family:'SF Mono','Consolas',monospace;font-size:0.78rem" oninput="parseOutline()"></textarea>
+              <textarea id="outlineInput" placeholder="例如：&#10;英语四级&#10;  听力&#10;    短对话理解&#10;    长对话理解&#10;    短文听力&#10;  阅读&#10;    选词填空&#10;    长篇阅读&#10;    仔细阅读&#10;  写作&#10;    议论文&#10;    应用文&#10;  翻译&#10;    汉译英段落翻译" style="min-height:120px;font-family:'SF Mono','Consolas',monospace;font-size:0.78rem" oninput="if(currentSplitTab!=='outline')switchSplitTab('outline');parseOutline()"></textarea>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -1229,8 +1229,14 @@ function addTask() {
 
       saveState();
       renderAll();
+      const levelMode = document.getElementById('outlineLevelMode').value;
+      const parentCount = parsedOutlineNodes.filter(n => !n.isLeaf).length;
+      const leafCount = parsedOutlineNodes.length - parentCount;
+      const modeLabel = levelMode === 'hierarchical' && parentCount > 0
+        ? `（多级：${parentCount}父级 + ${leafCount}知识点）`
+        : `（平级：${leafCount}项）`;
       const endDate = toDateStr(addDays(startDate, parsedOutlineNodes.length - 1));
-      toast(`已生成 ${parsedOutlineNodes.length} 个任务（含父子层级），排程至 ${endDate}`);
+      toast(`已生成 ${parsedOutlineNodes.length} 个课程任务${modeLabel}，排程至 ${endDate}`);
       resetForm();
       return;
     }
@@ -1322,6 +1328,14 @@ function resetForm() {
   parsedOutlineNodes = [];
 }
 
+function removeTaskAndCleanOrphans(taskId) {
+  state.tasks = state.tasks.filter(t => t.id !== taskId);
+  // Clear orphaned parent references
+  for (const t of state.tasks) {
+    if (t.parentTaskId === taskId) t.parentTaskId = null;
+  }
+}
+
 function deleteTask(taskId) {
   const task = state.tasks.find(t => t.id === taskId);
   if (!task) return;
@@ -1329,10 +1343,10 @@ function deleteTask(taskId) {
   if (task.groupId) {
     const siblings = state.tasks.filter(t => t.groupId === task.groupId && t.id !== taskId);
     if (siblings.length > 0) {
-      if (confirm(`此任务是拆分组的一部分（共 ${siblings.length + 1} 天）。\n\n"确定"=删除整个组\n"取消"=只删除这一个`)) {
+      if (confirm(`此任务是拆分组的一部分（共 ${siblings.length + 1} 项）。\n\n"确定"=删除整个组\n"取消"=只删除这一个`)) {
         deleteGroup(task.groupId);
       } else {
-        state.tasks = state.tasks.filter(t => t.id !== taskId);
+        removeTaskAndCleanOrphans(taskId);
         saveState();
         renderAll();
         toast('已删除单个子任务');
@@ -1342,7 +1356,7 @@ function deleteTask(taskId) {
   }
 
   if (!confirm('确定删除此任务及所有复习记录？')) return;
-  state.tasks = state.tasks.filter(t => t.id !== taskId);
+  removeTaskAndCleanOrphans(taskId);
   saveState();
   renderAll();
   toast('任务已删除');
@@ -1593,8 +1607,9 @@ function renderTaskList() {
       // Build parent → children map
       const childrenMap = new Map();
       const roots = [];
+      const allIds = new Set(gtasks.map(t => t.id));
       for (const t of gtasks) {
-        if (t.parentTaskId) {
+        if (t.parentTaskId && allIds.has(t.parentTaskId)) {
           if (!childrenMap.has(t.parentTaskId)) childrenMap.set(t.parentTaskId, []);
           childrenMap.get(t.parentTaskId).push(t);
         } else {
