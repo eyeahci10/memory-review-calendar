@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>记忆曲线复习日历</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --primary: #3b82f6;
+    --primary-dim: rgba(59,130,246,0.15);
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --heat-0: transparent;
+    --heat-1: rgba(59,130,246,0.12);
+    --heat-2: rgba(59,130,246,0.22);
+    --heat-3: rgba(59,130,246,0.35);
+    --heat-4: rgba(59,130,246,0.55);
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    --transition: 0.2s ease;
+  }
+
+  [data-theme="light"] {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface2: #f1f5f9;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --text2: #475569;
+    --text3: #94a3b8;
+    --primary: #2563eb;
+    --primary-dim: rgba(37,99,235,0.08);
+    --heat-1: rgba(37,99,235,0.08);
+    --heat-2: rgba(37,99,235,0.16);
+    --heat-3: rgba(37,99,235,0.28);
+    --heat-4: rgba(37,99,235,0.45);
+    --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background var(--transition), color var(--transition);
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .header h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn.primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .btn.primary:hover { filter: brightness(1.15); }
+  .btn.danger { color: var(--danger); border-color: var(--danger); }
+  .btn.danger:hover { background: rgba(239,68,68,0.1); }
+  .btn-sm { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; }
+  .btn-xs { padding: 3px 8px; font-size: 0.7rem; border-radius: 5px; }
+
+  /* ── Layout ── */
+  .main {
+    display: flex;
+    height: calc(100vh - 65px);
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 340px;
+    min-width: 340px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px;
+    gap: 16px;
+    transition: background var(--transition);
+  }
+  .sidebar section {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 14px;
+    border: 1px solid var(--border);
+  }
+  .sidebar section h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Date range ── */
+  .date-range-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .date-range-row input[type="date"] {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.82rem;
+    font-family: inherit;
+    color-scheme: dark;
+  }
+  [data-theme="light"] .date-range-row input[type="date"] { color-scheme: light; }
+  .date-range-row span { color: var(--text3); font-size: 0.8rem; }
+
+  /* ── Add task form ── */
+  .form-group { margin-bottom: 10px; }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text2);
+    margin-bottom: 4px;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: border var(--transition);
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .form-group textarea { resize: vertical; min-height: 50px; }
+  .form-row { display: flex; gap: 8px; }
+  .form-row .form-group { flex: 1; }
+
+  /* ── Today reviews ── */
+  .today-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--surface);
+    margin-bottom: 6px;
+    gap: 8px;
+    transition: background var(--transition);
+  }
+  .today-item:last-child { margin-bottom: 0; }
+  .today-item .task-info { flex: 1; min-width: 0; }
+  .today-item .task-title { font-size: 0.85rem; font-weight: 500; }
+  .today-item .task-meta { font-size: 0.72rem; color: var(--text3); }
+  .today-item .review-num {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    white-space: nowrap;
+  }
+  .today-item .diff-btns { display: flex; gap: 3px; }
+  .diff-btn {
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text2);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+  }
+  .diff-btn:hover { border-color: var(--success); color: var(--success); }
+  .diff-btn.easy:hover { border-color: var(--success); color: var(--success); }
+  .diff-btn.hard:hover { border-color: var(--warning); color: var(--warning); }
+  .completed-badge {
+    font-size: 0.7rem;
+    color: var(--success);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(16,185,129,0.1);
+  }
+  .no-reviews {
+    text-align: center;
+    color: var(--text3);
+    font-size: 0.82rem;
+    padding: 12px 0;
+  }
+
+  /* ── Task list ── */
+  .task-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--surface);
+    margin-bottom: 4px;
+    gap: 8px;
+    cursor: pointer;
+    transition: all var(--transition);
+    border-left: 3px solid transparent;
+  }
+  .task-list-item:hover { background: var(--surface2); }
+  .task-list-item .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .task-list-item .info { flex: 1; min-width: 0; }
+  .task-list-item .title { font-size: 0.82rem; }
+  .task-list-item .sub {
+    font-size: 0.7rem;
+    color: var(--text3);
+  }
+  .task-list-item .strength-bar {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .task-list-item .strength-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s;
+  }
+  .task-list-item .del-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 4px;
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+  .task-list-item:hover .del-btn { opacity: 1; }
+  .task-list-item .del-btn:hover { color: var(--danger); }
+
+  /* ── Stats mini ── */
+  .stats-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    text-align: center;
+    padding: 8px 4px;
+    background: var(--surface);
+    border-radius: 8px;
+  }
+  .stat-card .val {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .stat-card .lbl {
+    font-size: 0.68rem;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: var(--warning);
+    font-weight: 600;
+  }
+
+  /* ── Calendar ── */
+  .calendar-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 24px;
+    overflow-y: auto;
+  }
+  .calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .calendar-nav h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    min-width: 140px;
+    text-align: center;
+  }
+  .calendar-nav .nav-btns { display: flex; gap: 6px; }
+
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-weight: 600;
+    margin-bottom: 4px;
+    padding: 0 2px;
+  }
+  .weekdays span:first-child { color: var(--danger); }
+  .weekdays span:last-child { color: var(--danger); }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    flex: 1;
+  }
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    padding: 4px;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 80px;
+    border: 2px solid transparent;
+    background: var(--heat-0);
+  }
+  .cal-cell:hover { background: var(--surface2); }
+  .cal-cell.other-month { opacity: 0.3; pointer-events: none; }
+  .cal-cell.today { border-color: var(--primary); }
+  .cal-cell .day-num {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .cal-cell.today .day-num {
+    background: var(--primary);
+    color: #fff;
+    width: 24px; height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .cal-cell .dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: auto;
+    padding-top: 2px;
+  }
+  .cal-cell .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .cal-cell .more-tag {
+    font-size: 0.6rem;
+    color: var(--text3);
+    margin-left: 2px;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 14px;
+    font-size: 0.75rem;
+    color: var(--text3);
+    flex-wrap: wrap;
+  }
+  .legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+
+  /* ── Modals ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 520px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .modal h2 { margin-bottom: 16px; font-size: 1.1rem; }
+  .modal .close-btn {
+    float: right;
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal .close-btn:hover { color: var(--text); }
+
+  /* ── Stats ── */
+  .stat-bars { display: flex; flex-direction: column; gap: 10px; }
+  .stat-bar-row { display: flex; align-items: center; gap: 10px; }
+  .stat-bar-row .label { width: 70px; font-size: 0.8rem; color: var(--text2); }
+  .stat-bar-row .bar {
+    flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden;
+  }
+  .stat-bar-row .fill {
+    height: 100%; border-radius: 4px; transition: width 0.5s;
+  }
+
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.85rem;
+    box-shadow: var(--shadow);
+    animation: slideIn 0.3s ease;
+    max-width: 300px;
+  }
+  .toast.success { border-color: var(--success); }
+  .toast.error { border-color: var(--danger); }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 820px) {
+    .main { flex-direction: column; height: auto; }
+    .sidebar {
+      width: 100%; min-width: 0; max-height: 45vh;
+      border-right: none; border-bottom: 1px solid var(--border);
+    }
+    .calendar-area { padding: 12px; }
+    .cal-cell { min-height: 55px; padding: 3px; }
+    .cal-cell .day-num { font-size: 0.75rem; }
+    .cal-cell.today .day-num { width: 20px; height: 20px; font-size: 0.7rem; }
+    .stats-cards { grid-template-columns: repeat(3, 1fr); }
+    .header h1 { font-size: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="header">
+    <h1>记忆曲线复习日历</h1>
+    <div class="header-actions">
+      <button class="btn btn-sm" onclick="exportJSON()" title="导出数据备份">导出 JSON</button>
+      <button class="btn btn-sm" onclick="document.getElementById('importFile').click()" title="导入数据">导入 JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+      <button class="btn btn-sm" onclick="exportICS()" title="导出到系统日历">导出 iCal</button>
+      <button class="btn btn-sm" onclick="openStats()">统计</button>
+      <button class="btn btn-sm" onclick="toggleTheme()" id="themeBtn">☀️ 亮色</button>
+      <button class="btn btn-sm" onclick="requestNotification()" id="notifyBtn" title="开启浏览器提醒">🔔 提醒</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="sidebar">
+      <!-- 日期范围 -->
+      <section>
+        <h3>📅 日期范围</h3>
+        <div class="date-range-row">
+          <input type="date" id="dateStart" onchange="onDateRangeChange()">
+          <span>至</span>
+          <input type="date" id="dateEnd" onchange="onDateRangeChange()">
+        </div>
+      </section>
+
+      <!-- 添加任务 -->
+      <section>
+        <h3>➕ 添加学习任务</h3>
+        <div class="form-group">
+          <label>任务名称</label>
+          <input type="text" id="taskTitle" placeholder="例如：英语四级单词" onkeydown="if(event.key==='Enter')addTask()">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>分类</label>
+            <select id="taskCategory">
+              <option value="language">语言学习</option>
+              <option value="exam">考试备考</option>
+              <option value="skill">技能练习</option>
+              <option value="other">其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>学习日期</label>
+            <input type="date" id="taskLearnDate">
+          </div>
+        </div>
+        <!-- 拆分开关 -->
+        <div class="form-group" style="margin-bottom:4px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.8rem">
+            <input type="checkbox" id="splitToggle" onchange="toggleSplit()" style="width:auto;accent-color:var(--primary)">
+            🔀 拆分任务
+          </label>
+        </div>
+        <div id="splitOptions" style="display:none;background:var(--surface);border-radius:8px;padding:10px;margin-bottom:10px">
+          <!-- Tab switcher -->
+          <div style="display:flex;gap:4px;margin-bottom:10px">
+            <button class="btn btn-xs" id="tabNumeric" style="background:var(--primary);color:#fff;border-color:var(--primary)" onclick="switchSplitTab('numeric')">📊 数值拆分</button>
+            <button class="btn btn-xs" id="tabOutline" onclick="switchSplitTab('outline')">📋 课程大纲</button>
+          </div>
+
+          <!-- Numeric split -->
+          <div id="splitNumeric">
+            <div class="form-row">
+              <div class="form-group">
+                <label>总量（如：3000 词 / 20 章）</label>
+                <input type="number" id="splitTotal" placeholder="3000" min="1" oninput="previewSplit()">
+              </div>
+              <div class="form-group">
+                <label>拆分方式</label>
+                <select id="splitMode" onchange="previewSplit()">
+                  <option value="byDays">按学习天数</option>
+                  <option value="byAmount">按每日数量</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label id="splitAmountLabel">总天数</label>
+                <input type="number" id="splitAmount" placeholder="15" min="1" oninput="previewSplit()">
+              </div>
+              <div class="form-group">
+                <label>单位名称</label>
+                <input type="text" id="splitUnit" placeholder="词 / 章 / 页" value="词">
+              </div>
+            </div>
+            <div id="splitPreview" style="font-size:0.75rem;color:var(--text3);margin-top:4px"></div>
+          </div>
+
+          <!-- Outline split -->
+          <div id="splitOutline" style="display:none">
+            <div class="form-group">
+              <label>粘贴课程大纲（支持缩进层级、编号、章节标记）</label>
+              <textarea id="outlineInput" placeholder="例如：&#10;英语四级&#10;  听力&#10;    短对话理解&#10;    长对话理解&#10;    短文听力&#10;  阅读&#10;    选词填空&#10;    长篇阅读&#10;    仔细阅读&#10;  写作&#10;    议论文&#10;    应用文&#10;  翻译&#10;    汉译英段落翻译" style="min-height:120px;font-family:'SF Mono','Consolas',monospace;font-size:0.78rem" oninput="parseOutline()"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>排程方式</label>
+                <select id="outlineSchedule">
+                  <option value="sequential">按顺序每天一项</option>
+                  <option value="spaced">间隔 N 天排一项</option>
+                  <option value="sameDay">全部同一天开始</option>
+                </select>
+              </div>
+              <div class="form-group" id="outlineIntervalGrp" style="display:none">
+                <label>间隔天数</label>
+                <input type="number" id="outlineInterval" value="2" min="1" max="30" style="width:100%">
+              </div>
+            </div>
+            <div id="outlinePreview" style="font-size:0.75rem;color:var(--text3);margin-top:4px;max-height:120px;overflow-y:auto"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>备注（可选）</label>
+          <textarea id="taskDesc" placeholder="简要描述..."></textarea>
+        </div>
+        <button class="btn primary" style="width:100%" onclick="addTask()">添加任务并生成复习计划</button>
+      </section>
+
+      <!-- 今日待复习 -->
+      <section>
+        <h3>📌 今日待复习</h3>
+        <div id="todayReviews"><div class="no-reviews">今天没有待复习的任务 🎉</div></div>
+      </section>
+
+      <!-- 任务列表 -->
+      <section>
+        <h3>📋 全部任务</h3>
+        <div id="taskList"><div class="no-reviews">还没有添加任务</div></div>
+      </section>
+
+      <!-- 统计小卡片 -->
+      <section>
+        <h3>📊 概览</h3>
+        <div class="stats-cards">
+          <div class="stat-card"><div class="val" id="statTotal">0</div><div class="lbl">总任务</div></div>
+          <div class="stat-card"><div class="val" id="statPending">0</div><div class="lbl">待复习</div></div>
+          <div class="stat-card"><div class="val" id="statDone">0</div><div class="lbl">已完成</div></div>
+        </div>
+        <div style="margin-top:8px;text-align:center">
+          <span class="streak-badge" id="streakBadge">🔥 连续 0 天</span>
+        </div>
+      </section>
+    </aside>
+
+    <!-- 日历 -->
+    <main class="calendar-area">
+      <div class="calendar-nav">
+        <div class="nav-btns">
+          <button class="btn btn-sm" onclick="navMonth(-1)">◀ 上月</button>
+          <button class="btn btn-sm" onclick="navToday()">今天</button>
+          <button class="btn btn-sm" onclick="navMonth(1)">下月 ▶</button>
+        </div>
+        <h2 id="monthTitle"></h2>
+        <div></div>
+      </div>
+      <div class="weekdays">
+        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot" style="background:var(--primary)"></span> 语言</span>
+        <span class="legend-item"><span class="dot" style="background:var(--danger)"></span> 考试</span>
+        <span class="legend-item"><span class="dot" style="background:var(--success)"></span> 技能</span>
+        <span class="legend-item"><span class="dot" style="background:var(--warning)"></span> 其他</span>
+        <span class="legend-item">| 背景色深 = 复习密集</span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 统计弹窗 -->
+<div class="modal-overlay" id="statsModal">
+  <div class="modal">
+    <button class="close-btn" onclick="closeStats()">✕</button>
+    <h2>📊 学习统计</h2>
+    <div class="stat-bars" id="statDetails"></div>
+  </div>
+</div>
+
+<!-- 日期详情弹窗 -->
+<div class="modal-overlay" id="dayModal">
+  <div class="modal">
+    <button class="close-btn" onclick="closeDayModal()">✕</button>
+    <h2 id="dayModalTitle"></h2>
+    <div id="dayModalContent"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ═══════════════════════════════════════
+//  State & Config
+// ═══════════════════════════════════════
+const CATEGORIES = {
+  language: { label: '语言学习', color: '#3b82f6' },
+  exam: { label: '考试备考', color: '#ef4444' },
+  skill: { label: '技能练习', color: '#10b981' },
+  other: { label: '其他', color: '#f59e0b' },
+};
+const BASE_INTERVALS = [1, 3, 7, 14, 30, 60, 120];
+const DIFF_MULTIPLIERS = { 1: 0.8, 2: 1.0, 3: 1.5 };
+const DIFF_LABELS = { 1: '简单', 2: '正常', 3: '困难' };
+const MAX_DOTS_PER_CELL = 5;
+
+let state = loadState();
+
+function defaultState() {
+  const today = toDateStr(new Date());
+  const end = toDateStr(addDays(new Date(), 90));
+  return {
+    tasks: [],
+    dateStart: today,
+    dateEnd: end,
+    currentMonth: new Date(),
+    theme: 'dark',
+    streak: { count: 0, lastDate: null },
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('memoryReviewState');
+    if (raw) {
+      const s = JSON.parse(raw);
+      s.currentMonth = new Date(s.currentMonth);
+      return s;
+    }
+  } catch (e) { /* ignore */ }
+  return defaultState();
+}
+
+function saveState() {
+  localStorage.setItem('memoryReviewState', JSON.stringify(state));
+}
+
+// ═══════════════════════════════════════
+//  Date Helpers
+// ═══════════════════════════════════════
+function toDateStr(d) { return d.toISOString().slice(0, 10); }
+function parseDate(s) { const [y,m,d]=s.split('-'); return new Date(+y,+m-1,+d); }
+function addDays(d, n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function daysInMonth(y, m) { return new Date(y, m+1, 0).getDate(); }
+function getWeekday(d) { return d.getDay(); }
+function isSameDay(a, b) { return toDateStr(a) === toDateStr(b); }
+function todayStr() { return toDateStr(new Date()); }
+
+// ═══════════════════════════════════════
+//  Spaced Repetition Engine
+// ═══════════════════════════════════════
+function generateSchedule(learnDateStr, endDateStr) {
+  const learnDate = parseDate(learnDateStr);
+  const endDate = parseDate(endDateStr);
+  const reviews = [];
+  let cumulative = 0;
+
+  for (let i = 0; i < BASE_INTERVALS.length; i++) {
+    cumulative += BASE_INTERVALS[i];
+    const reviewDate = addDays(learnDate, cumulative);
+    const dateStr = toDateStr(reviewDate);
+    if (dateStr > endDateStr) break;
+    reviews.push({
+      date: dateStr,
+      reviewNumber: i + 1,
+      completed: false,
+      completedDate: null,
+      difficulty: null,
+    });
+  }
+  return reviews;
+}
+
+function completeReview(task, reviewDateStr, difficulty) {
+  const idx = task.reviews.findIndex(r => r.date === reviewDateStr && !r.completed);
+  if (idx === -1) return false;
+
+  task.reviews[idx].completed = true;
+  task.reviews[idx].completedDate = new Date().toISOString();
+  task.reviews[idx].difficulty = difficulty;
+
+  // Recalculate future reviews from today
+  const multiplier = DIFF_MULTIPLIERS[difficulty] || 1.0;
+  const remaining = BASE_INTERVALS.slice(idx + 1);
+  const endDate = parseDate(state.dateEnd);
+  let cumulative = 0;
+
+  // Remove old future entries
+  task.reviews = task.reviews.filter((_, i) => i <= idx || task.reviews[i].completed);
+
+  for (let i = 0; i < remaining.length; i++) {
+    cumulative += Math.round(remaining[i] * multiplier);
+    const reviewDate = addDays(new Date(), cumulative);
+    const dateStr = toDateStr(reviewDate);
+    if (dateStr > state.dateEnd) break;
+    // Avoid duplicates
+    if (!task.reviews.some(r => r.date === dateStr)) {
+      task.reviews.push({
+        date: dateStr,
+        reviewNumber: idx + 2 + i,
+        completed: false,
+        completedDate: null,
+        difficulty: null,
+      });
+    }
+  }
+  return true;
+}
+
+function getMemoryStrength(task) {
+  const completedCount = task.reviews.filter(r => r.completed).length;
+  if (completedCount === 0) {
+    const daysSinceLearn = daysBetween(parseDate(task.learnDate), new Date());
+    // Ebbinghaus: ~33% after 1 day, ~28% after 2 days, etc.
+    return Math.max(5, Math.round(100 * Math.exp(-0.5 * daysSinceLearn)));
+  }
+  const lastCompleted = task.reviews.filter(r => r.completed).pop();
+  const daysSinceLast = daysBetween(parseDate(lastCompleted.date), new Date());
+  const baseRetention = 50 + completedCount * 10; // each review adds ~10% base
+  const decay = daysSinceLast * Math.max(1, 6 - completedCount * 0.7);
+  return Math.max(10, Math.min(98, Math.round(baseRetention - decay)));
+}
+
+function daysBetween(a, b) {
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+
+function getStrengthColor(strength) {
+  if (strength >= 70) return 'var(--success)';
+  if (strength >= 40) return 'var(--warning)';
+  return 'var(--danger)';
+}
+
+// ═══════════════════════════════════════
+//  Task CRUD
+// ═══════════════════════════════════════
+// ── Split task helpers ──
+function toggleSplit() {
+  const checked = document.getElementById('splitToggle').checked;
+  document.getElementById('splitOptions').style.display = checked ? 'block' : 'none';
+  if (checked) previewSplit();
+}
+
+function previewSplit() {
+  const total = parseInt(document.getElementById('splitTotal').value) || 0;
+  const amount = parseInt(document.getElementById('splitAmount').value) || 0;
+  const mode = document.getElementById('splitMode').value;
+  const unit = document.getElementById('splitUnit').value || '词';
+  const preview = document.getElementById('splitPreview');
+
+  document.getElementById('splitAmountLabel').textContent = mode === 'byDays' ? '总天数' : '每日数量';
+
+  if (total <= 0 || amount <= 0) {
+    preview.textContent = '';
+    return;
+  }
+
+  if (mode === 'byDays') {
+    const perDay = Math.ceil(total / amount);
+    preview.textContent = `将生成 ${amount} 个子任务，每天学习约 ${perDay} ${unit}`;
+  } else {
+    const days = Math.ceil(total / amount);
+    preview.textContent = `将生成 ${days} 个子任务，每天 ${amount} ${unit}，共 ${days} 天`;
+  }
+}
+
+// ── Outline parser ──
+let parsedOutlineLeaves = [];
+let currentSplitTab = 'numeric';
+
+function switchSplitTab(tab) {
+  currentSplitTab = tab;
+  document.getElementById('tabNumeric').style.background = tab === 'numeric' ? 'var(--primary)' : '';
+  document.getElementById('tabNumeric').style.color = tab === 'numeric' ? '#fff' : '';
+  document.getElementById('tabOutline').style.background = tab === 'outline' ? 'var(--primary)' : '';
+  document.getElementById('tabOutline').style.color = tab === 'outline' ? '#fff' : '';
+  document.getElementById('splitNumeric').style.display = tab === 'numeric' ? 'block' : 'none';
+  document.getElementById('splitOutline').style.display = tab === 'outline' ? 'block' : 'none';
+  if (tab === 'outline') parseOutline();
+}
+
+// Wire up outline schedule selector (runs inline since script is at bottom)
+(function() {
+  const sel = document.getElementById('outlineSchedule');
+  if (sel) sel.addEventListener('change', () => {
+    document.getElementById('outlineIntervalGrp').style.display = sel.value === 'spaced' ? 'block' : 'none';
+    parseOutline();
+  });
+})();
+
+function parseOutline() {
+  const input = document.getElementById('outlineInput').value;
+  const preview = document.getElementById('outlinePreview');
+  parsedOutlineLeaves = [];
+
+  if (!input.trim()) {
+    preview.innerHTML = '<span style="color:var(--text3)">等待输入...</span>';
+    return;
+  }
+
+  const lines = input.split('\n');
+  // Build items with indentation
+  const items = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const indent = line.length - line.trimStart().length;
+    // Strip number/bullet/chapter prefixes
+    let cleaned = trimmed
+      .replace(/^[\d]+[\.\)、\s]\s*/, '')
+      .replace(/^第[一二三四五六七八九十百\d]+章[：:\s]*/, '')
+      .replace(/^Chapter\s*\d+[：:\s\.]*/i, '')
+      .replace(/^Ch\.?\s*\d+[：:\s\.]*/i, '')
+      .replace(/^[•\-\*\✓\□\■\○\●\▸\▹\▪\▫]\s*/, '')
+      .trim();
+    if (!cleaned) cleaned = trimmed;
+    items.push({ text: cleaned, indent, children: [] });
+  }
+
+  if (items.length === 0) {
+    preview.innerHTML = '<span style="color:var(--text3)">等待输入...</span>';
+    return;
+  }
+
+  // Build tree
+  const root = { text: '', indent: -1, children: [] };
+  const stack = [root];
+
+  for (const item of items) {
+    while (stack.length > 1 && stack[stack.length - 1].indent >= item.indent) {
+      stack.pop();
+    }
+    stack[stack.length - 1].children.push(item);
+    stack.push(item);
+  }
+
+  // If everything is flat (same indent), root.children are all the leaves
+  // Collect leaves with paths
+  function collectLeaves(nodes, path) {
+    const leaves = [];
+    for (const node of nodes) {
+      const cp = [...path, node.text];
+      if (node.children.length === 0) {
+        leaves.push({ title: node.text, path: cp });
+      } else {
+        leaves.push(...collectLeaves(node.children, cp));
+      }
+    }
+    return leaves;
+  }
+
+  parsedOutlineLeaves = collectLeaves(root.children, []);
+
+  // Determine max indent to see if hierarchy exists
+  const hasHierarchy = items.some(i => i.indent > 0);
+
+  if (hasHierarchy) {
+    // Show tree preview
+    function renderTree(nodes, depth) {
+      let html = '';
+      for (const node of nodes) {
+        const isLeaf = node.children.length === 0;
+        html += `<div style="padding-left:${depth * 16}px;line-height:1.6">
+          ${isLeaf ? '📄' : '📁'} ${escHtml(node.text)}
+          ${renderTree(node.children, depth + 1)}
+        </div>`;
+      }
+      return html;
+    }
+    preview.innerHTML = renderTree(root.children, 0) +
+      `<div style="margin-top:4px;color:var(--primary)">共识别 ${parsedOutlineLeaves.length} 个课程任务</div>`;
+  } else {
+    // Flat list
+    preview.innerHTML = parsedOutlineLeaves.map((l, i) =>
+      `<div style="line-height:1.6">${i + 1}. ${escHtml(l.title)}</div>`
+    ).join('') +
+    `<div style="margin-top:4px;color:var(--primary)">共识别 ${parsedOutlineLeaves.length} 个课程任务</div>`;
+  }
+
+  // Update schedule mode visibility
+  const scheduleMode = document.getElementById('outlineSchedule').value;
+  document.getElementById('outlineIntervalGrp').style.display = scheduleMode === 'spaced' ? 'block' : 'none';
+}
+
+function addTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  if (!title) { toast('请输入任务名称', 'error'); return; }
+
+  const category = document.getElementById('taskCategory').value;
+  const learnDate = document.getElementById('taskLearnDate').value;
+  const desc = document.getElementById('taskDesc').value.trim();
+  const splitEnabled = document.getElementById('splitToggle').checked;
+
+  if (!learnDate) { toast('请选择学习日期', 'error'); return; }
+
+  if (splitEnabled) {
+    // ── Outline mode ──
+    if (currentSplitTab === 'outline') {
+      if (parsedOutlineLeaves.length === 0) {
+        toast('请先粘贴课程大纲并确认解析结果', 'error');
+        return;
+      }
+
+      const scheduleMode = document.getElementById('outlineSchedule').value;
+      const interval = parseInt(document.getElementById('outlineInterval').value) || 2;
+      const groupId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
+      const startDate = parseDate(learnDate);
+
+      for (let i = 0; i < parsedOutlineLeaves.length; i++) {
+        const leaf = parsedOutlineLeaves[i];
+        let subLearnDate;
+        if (scheduleMode === 'sameDay') {
+          subLearnDate = learnDate;
+        } else if (scheduleMode === 'spaced') {
+          subLearnDate = toDateStr(addDays(startDate, i * interval));
+        } else {
+          // sequential: one per day
+          subLearnDate = toDateStr(addDays(startDate, i));
+        }
+
+        // Build full path for title: "听力/短对话理解"
+        const shortTitle = leaf.path.length > 1
+          ? leaf.path.slice(1).join(' / ')
+          : leaf.title;
+        // Root node as group title
+        const rootTitle = leaf.path.length > 1 ? leaf.path[0] : title;
+
+        const task = {
+          id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2),
+          title: shortTitle,
+          description: desc,
+          category,
+          learnDate: subLearnDate,
+          color: CATEGORIES[category].color,
+          createdAt: new Date().toISOString(),
+          reviews: generateSchedule(subLearnDate, state.dateEnd),
+          groupId,
+          groupTitle: rootTitle,
+        };
+        state.tasks.push(task);
+      }
+
+      saveState();
+      renderAll();
+      const endDate = toDateStr(addDays(startDate, parsedOutlineLeaves.length - 1));
+      toast(`已生成 ${parsedOutlineLeaves.length} 个课程任务，排程至 ${endDate}`);
+      resetForm();
+      return;
+    }
+
+    // ── Numeric split mode ──
+    const total = parseInt(document.getElementById('splitTotal').value) || 0;
+    const amount = parseInt(document.getElementById('splitAmount').value) || 0;
+    const mode = document.getElementById('splitMode').value;
+    const unit = document.getElementById('splitUnit').value || '词';
+
+    if (total <= 0 || amount <= 0) {
+      toast('请填写总量和拆分参数', 'error');
+      return;
+    }
+
+    let numTasks, perDay;
+    if (mode === 'byDays') {
+      numTasks = amount;
+      perDay = Math.ceil(total / amount);
+    } else {
+      perDay = amount;
+      numTasks = Math.ceil(total / perDay);
+    }
+
+    if (numTasks > 200) {
+      toast('子任务数不能超过 200 个，请调整参数', 'error');
+      return;
+    }
+
+    const groupId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
+    const startDate = parseDate(learnDate);
+
+    for (let i = 0; i < numTasks; i++) {
+      const subLearnDate = toDateStr(addDays(startDate, i));
+      const startNum = i * perDay + 1;
+      const endNum = Math.min((i + 1) * perDay, total);
+      const subTitle = `${title} (${startNum}-${endNum}${unit})`;
+
+      const task = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2),
+        title: subTitle,
+        description: desc,
+        category,
+        learnDate: subLearnDate,
+        color: CATEGORIES[category].color,
+        createdAt: new Date().toISOString(),
+        reviews: generateSchedule(subLearnDate, state.dateEnd),
+        groupId,
+        groupTitle: title,
+      };
+
+      state.tasks.push(task);
+    }
+
+    saveState();
+    renderAll();
+    toast(`已生成 ${numTasks} 个子任务，每日 ${perDay} ${unit}，从 ${learnDate} 开始`);
+    resetForm();
+    return;
+  }
+
+  // Single task
+  const task = {
+    id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2),
+    title,
+    description: desc,
+    category,
+    learnDate,
+    color: CATEGORIES[category].color,
+    createdAt: new Date().toISOString(),
+    reviews: generateSchedule(learnDate, state.dateEnd),
+  };
+
+  state.tasks.push(task);
+  saveState();
+  renderAll();
+  toast('任务已添加，复习计划已自动生成');
+  resetForm();
+}
+
+function resetForm() {
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDesc').value = '';
+  document.getElementById('splitToggle').checked = false;
+  document.getElementById('splitOptions').style.display = 'none';
+  document.getElementById('splitPreview').textContent = '';
+  document.getElementById('outlinePreview').innerHTML = '';
+  document.getElementById('outlineInput').value = '';
+  parsedOutlineLeaves = [];
+}
+
+function deleteTask(taskId) {
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  if (task.groupId) {
+    const siblings = state.tasks.filter(t => t.groupId === task.groupId && t.id !== taskId);
+    if (siblings.length > 0) {
+      if (confirm(`此任务是拆分组的一部分（共 ${siblings.length + 1} 天）。\n\n"确定"=删除整个组\n"取消"=只删除这一个`)) {
+        deleteGroup(task.groupId);
+      } else {
+        state.tasks = state.tasks.filter(t => t.id !== taskId);
+        saveState();
+        renderAll();
+        toast('已删除单个子任务');
+      }
+      return;
+    }
+  }
+
+  if (!confirm('确定删除此任务及所有复习记录？')) return;
+  state.tasks = state.tasks.filter(t => t.id !== taskId);
+  saveState();
+  renderAll();
+  toast('任务已删除');
+}
+
+function deleteGroup(groupId) {
+  const count = state.tasks.filter(t => t.groupId === groupId).length;
+  state.tasks = state.tasks.filter(t => t.groupId !== groupId);
+  saveState();
+  renderAll();
+  toast(`已删除整组 ${count} 个子任务`);
+}
+
+function doReview(taskId, reviewDate, difficulty) {
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  completeReview(task, reviewDate, difficulty);
+  updateStreak();
+  saveState();
+  renderAll();
+  const diffLabel = DIFF_LABELS[difficulty];
+  toast(`复习完成！难度：${diffLabel}`);
+}
+
+function updateStreak() {
+  const today = todayStr();
+  if (state.streak.lastDate === today) return;
+  const yesterday = toDateStr(addDays(new Date(), -1));
+  if (state.streak.lastDate === yesterday || state.streak.lastDate === null) {
+    state.streak.count++;
+  } else if (state.streak.lastDate !== today) {
+    state.streak.count = 1;
+  }
+  state.streak.lastDate = today;
+}
+
+// ═══════════════════════════════════════
+//  Calendar Rendering
+// ═══════════════════════════════════════
+function getReviewsForDate(dateStr) {
+  const result = [];
+  for (const task of state.tasks) {
+    for (const review of task.reviews) {
+      if (review.date === dateStr) {
+        result.push({ task, review });
+      }
+    }
+  }
+  return result;
+}
+
+function renderCalendar() {
+  const month = state.currentMonth;
+  const year = month.getFullYear();
+  const mon = month.getMonth();
+  const firstDay = new Date(year, mon, 1);
+  const totalDays = daysInMonth(year, mon);
+  const startOffset = getWeekday(firstDay);
+  const today = todayStr();
+
+  document.getElementById('monthTitle').textContent = `${year}年 ${mon + 1}月`;
+
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+
+  const totalCells = 42;
+  const prevMonthDays = daysInMonth(year, mon - 1);
+  const nextMon = mon + 1;
+
+  for (let i = 0; i < totalCells; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+
+    let dateNum, dateStr, isCurrentMonth = true;
+
+    if (i < startOffset) {
+      // Previous month
+      dateNum = prevMonthDays - startOffset + i + 1;
+      dateStr = toDateStr(new Date(year, mon - 1, dateNum));
+      isCurrentMonth = false;
+      cell.classList.add('other-month');
+    } else if (i - startOffset >= totalDays) {
+      // Next month
+      dateNum = i - startOffset - totalDays + 1;
+      dateStr = toDateStr(new Date(year, nextMon, dateNum));
+      isCurrentMonth = false;
+      cell.classList.add('other-month');
+    } else {
+      dateNum = i - startOffset + 1;
+      dateStr = toDateStr(new Date(year, mon, dateNum));
+    }
+
+    if (dateStr === today) cell.classList.add('today');
+    cell.setAttribute('data-date', dateStr);
+
+    // Day number
+    const dayNumEl = document.createElement('span');
+    dayNumEl.className = 'day-num';
+    dayNumEl.textContent = dateNum;
+    cell.appendChild(dayNumEl);
+
+    if (isCurrentMonth) {
+      const dayReviews = getReviewsForDate(dateStr);
+
+      // Heatmap background
+      const count = dayReviews.length;
+      if (count >= 4) cell.style.background = 'var(--heat-4)';
+      else if (count >= 3) cell.style.background = 'var(--heat-3)';
+      else if (count >= 2) cell.style.background = 'var(--heat-2)';
+      else if (count >= 1) cell.style.background = 'var(--heat-1)';
+
+      // Overdue indicator
+      const hasOverdue = dayReviews.some(dr => !dr.review.completed && dateStr < today);
+      if (hasOverdue && count > 0) {
+        cell.style.borderColor = 'var(--danger)';
+      }
+
+      // Dots
+      if (count > 0) {
+        const dotsEl = document.createElement('div');
+        dotsEl.className = 'dots';
+        const uniqueTasks = [];
+        const seen = new Set();
+        for (const dr of dayReviews) {
+          if (!seen.has(dr.task.id)) {
+            seen.add(dr.task.id);
+            uniqueTasks.push(dr);
+          }
+        }
+        for (let j = 0; j < Math.min(uniqueTasks.length, MAX_DOTS_PER_CELL); j++) {
+          const dot = document.createElement('span');
+          dot.className = 'dot';
+          dot.style.background = uniqueTasks[j].task.color;
+          // Dim completed reviews
+          if (uniqueTasks[j].review.completed) {
+            dot.style.opacity = '0.3';
+          }
+          dotsEl.appendChild(dot);
+        }
+        if (uniqueTasks.length > MAX_DOTS_PER_CELL) {
+          const more = document.createElement('span');
+          more.className = 'more-tag';
+          more.textContent = `+${uniqueTasks.length - MAX_DOTS_PER_CELL}`;
+          dotsEl.appendChild(more);
+        }
+        cell.appendChild(dotsEl);
+      }
+
+      cell.addEventListener('click', () => openDayModal(dateStr));
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function navMonth(delta) {
+  const m = state.currentMonth;
+  state.currentMonth = new Date(m.getFullYear(), m.getMonth() + delta, 1);
+  saveState();
+  renderAll();
+}
+
+function navToday() {
+  state.currentMonth = new Date();
+  saveState();
+  renderAll();
+}
+
+// ═══════════════════════════════════════
+//  Sidebar Rendering
+// ═══════════════════════════════════════
+function renderTodayReviews() {
+  const today = todayStr();
+  const container = document.getElementById('todayReviews');
+  const allToday = [];
+
+  for (const task of state.tasks) {
+    for (const review of task.reviews) {
+      if (review.date === today) {
+        allToday.push({ task, review });
+      }
+    }
+  }
+
+  if (allToday.length === 0) {
+    container.innerHTML = '<div class="no-reviews">今天没有待复习的任务 🎉</div>';
+    return;
+  }
+
+  container.innerHTML = allToday.map(({ task, review }) => `
+    <div class="today-item">
+      <span class="review-num">第${review.reviewNumber}次</span>
+      <div class="task-info">
+        <div class="task-title">${escHtml(task.title)}</div>
+        <div class="task-meta">${CATEGORIES[task.category].label}</div>
+      </div>
+      ${review.completed
+        ? `<span class="completed-badge">✓ 已完成 (${DIFF_LABELS[review.difficulty]})</span>`
+        : `<div class="diff-btns">
+            <button class="diff-btn easy" onclick="doReview('${task.id}','${review.date}',1)" title="记得很牢">简单</button>
+            <button class="diff-btn" onclick="doReview('${task.id}','${review.date}',2)" title="正常记忆">正常</button>
+            <button class="diff-btn hard" onclick="doReview('${task.id}','${review.date}',3)" title="比较吃力">困难</button>
+          </div>`
+      }
+    </div>
+  `).join('');
+}
+
+function renderTaskList() {
+  const container = document.getElementById('taskList');
+  if (state.tasks.length === 0) {
+    container.innerHTML = '<div class="no-reviews">还没有添加任务</div>';
+    return;
+  }
+
+  // Group tasks by groupId
+  const groups = new Map();
+  const ungrouped = [];
+  for (const task of state.tasks) {
+    if (task.groupId) {
+      if (!groups.has(task.groupId)) groups.set(task.groupId, []);
+      groups.get(task.groupId).push(task);
+    } else {
+      ungrouped.push(task);
+    }
+  }
+
+  let html = '';
+
+  // Render grouped tasks
+  for (const [gid, gtasks] of groups) {
+    const totalReviews = gtasks.reduce((s, t) => s + t.reviews.length, 0);
+    const completedReviews = gtasks.reduce((s, t) => s + t.reviews.filter(r => r.completed).length, 0);
+    const avgStrength = Math.round(gtasks.reduce((s, t) => s + getMemoryStrength(t), 0) / gtasks.length);
+    const sc = getStrengthColor(avgStrength);
+
+    html += `<details open style="margin-bottom:4px">
+      <summary style="font-size:0.78rem;font-weight:600;color:var(--text2);cursor:pointer;padding:4px 6px;border-radius:6px;background:var(--surface);display:flex;align-items:center;gap:8px">
+        <span style="flex:1">📦 ${escHtml(gtasks[0].groupTitle || gtasks[0].title)}</span>
+        <span style="font-size:0.68rem;color:var(--text3);font-weight:400">${gtasks.length}天 · ${completedReviews}/${totalReviews}次</span>
+        <div class="strength-bar" title="平均记忆留存率 ${avgStrength}%" style="width:30px;height:4px">
+          <div class="strength-fill" style="width:${avgStrength}%;background:${sc}"></div>
+        </div>
+      </summary>`;
+
+    for (const task of gtasks) {
+      const strength = getMemoryStrength(task);
+      const cs = getStrengthColor(strength);
+      const completedCount = task.reviews.filter(r => r.completed).length;
+      const pendingCount = task.reviews.filter(r => !r.completed && r.date >= todayStr()).length;
+      html += `
+        <div class="task-list-item" style="border-left-color:${task.color};padding-left:20px">
+          <span class="dot" style="background:${task.color}"></span>
+          <div class="info" onclick="openTaskDetail('${task.id}')">
+            <div class="title" style="font-size:0.78rem">${escHtml(task.title)}</div>
+            <div class="sub">${task.learnDate} · 复习 ${completedCount}/${task.reviews.length}</div>
+          </div>
+          <div class="strength-bar" title="记忆留存率 ${strength}%">
+            <div class="strength-fill" style="width:${strength}%;background:${cs}"></div>
+          </div>
+          <button class="del-btn" onclick="event.stopPropagation();deleteTask('${task.id}')" title="删除">×</button>
+        </div>`;
+    }
+
+    html += '</details>';
+  }
+
+  // Render ungrouped tasks
+  for (const task of ungrouped) {
+    const strength = getMemoryStrength(task);
+    const sc = getStrengthColor(strength);
+    const completedCount = task.reviews.filter(r => r.completed).length;
+    const pendingCount = task.reviews.filter(r => !r.completed && r.date >= todayStr()).length;
+    html += `
+      <div class="task-list-item" style="border-left-color:${task.color}">
+        <span class="dot" style="background:${task.color}"></span>
+        <div class="info" onclick="openTaskDetail('${task.id}')">
+          <div class="title">${escHtml(task.title)}</div>
+          <div class="sub">复习 ${completedCount}/${task.reviews.length} | 待复习 ${pendingCount}</div>
+        </div>
+        <div class="strength-bar" title="记忆留存率 ${strength}%">
+          <div class="strength-fill" style="width:${strength}%;background:${sc}"></div>
+        </div>
+        <button class="del-btn" onclick="event.stopPropagation();deleteTask('${task.id}')" title="删除">×</button>
+      </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function renderStats() {
+  const totalTasks = state.tasks.length;
+  let totalPending = 0;
+  let totalCompleted = 0;
+  for (const task of state.tasks) {
+    totalPending += task.reviews.filter(r => !r.completed && r.date <= state.dateEnd).length;
+    totalCompleted += task.reviews.filter(r => r.completed).length;
+  }
+  document.getElementById('statTotal').textContent = totalTasks;
+  document.getElementById('statPending').textContent = totalPending;
+  document.getElementById('statDone').textContent = totalCompleted;
+  document.getElementById('streakBadge').innerHTML = `🔥 连续 ${state.streak.count} 天`;
+}
+
+function renderAll() {
+  renderCalendar();
+  renderTodayReviews();
+  renderTaskList();
+  renderStats();
+}
+
+// ═══════════════════════════════════════
+//  Modals
+// ═══════════════════════════════════════
+function openDayModal(dateStr) {
+  const dayReviews = getReviewsForDate(dateStr);
+  document.getElementById('dayModalTitle').textContent = `${dateStr} 复习任务`;
+  const content = document.getElementById('dayModalContent');
+
+  if (dayReviews.length === 0) {
+    content.innerHTML = '<p style="color:var(--text3)">当天无复习任务</p>';
+  } else {
+    content.innerHTML = dayReviews.map(({ task, review }) => `
+      <div class="today-item" style="margin-bottom:8px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${task.color};flex-shrink:0"></span>
+        <div class="task-info">
+          <div class="task-title" style="cursor:pointer;text-decoration:underline;text-underline-offset:2px" onclick="event.stopPropagation();openTaskDetail('${task.id}')">${escHtml(task.title)}</div>
+          <div class="task-meta">${CATEGORIES[task.category].label} · 第${review.reviewNumber}次复习</div>
+        </div>
+        ${review.completed
+          ? `<span class="completed-badge">✓ 已完成 (${DIFF_LABELS[review.difficulty]})</span>`
+          : dateStr === todayStr()
+            ? `<div class="diff-btns">
+                <button class="diff-btn easy" onclick="doReview('${task.id}','${review.date}',1);closeDayModal()">简单</button>
+                <button class="diff-btn" onclick="doReview('${task.id}','${review.date}',2);closeDayModal()">正常</button>
+                <button class="diff-btn hard" onclick="doReview('${task.id}','${review.date}',3);closeDayModal()">困难</button>
+              </div>`
+            : `<span style="font-size:0.75rem;color:var(--text3)">⏳ 等待日期</span>`
+        }
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('dayModal').classList.add('open');
+}
+
+function closeDayModal() {
+  document.getElementById('dayModal').classList.remove('open');
+}
+
+function openTaskDetail(taskId) {
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  const strength = getMemoryStrength(task);
+  const completedCount = task.reviews.filter(r => r.completed).length;
+  document.getElementById('dayModalTitle').textContent = task.title;
+  const content = document.getElementById('dayModalContent');
+  content.innerHTML = `
+    <p style="color:var(--text2);margin-bottom:12px">
+      分类：${CATEGORIES[task.category].label} |
+      学习日期：${task.learnDate} |
+      记忆留存率：<span style="color:${getStrengthColor(strength)};font-weight:600">${strength}%</span>
+    </p>
+    ${task.description ? `<p style="color:var(--text3);margin-bottom:12px;font-size:0.85rem">${escHtml(task.description)}</p>` : ''}
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${task.reviews.map(r => `
+        <div class="today-item">
+          <span class="review-num">第${r.reviewNumber}次</span>
+          <div class="task-info">
+            <div style="font-size:0.82rem">${r.date}</div>
+          </div>
+          ${r.completed
+            ? `<span class="completed-badge">✓ ${DIFF_LABELS[r.difficulty]}</span>`
+            : r.date === todayStr()
+              ? `<div class="diff-btns">
+                  <button class="diff-btn easy" onclick="doReview('${task.id}','${r.date}',1);openTaskDetail('${task.id}')">简单</button>
+                  <button class="diff-btn" onclick="doReview('${task.id}','${r.date}',2);openTaskDetail('${task.id}')">正常</button>
+                  <button class="diff-btn hard" onclick="doReview('${task.id}','${r.date}',3);openTaskDetail('${task.id}')">困难</button>
+                </div>`
+              : `<span style="font-size:0.75rem;color:var(--text3)">⏳</span>`
+          }
+        </div>
+      `).join('')}
+    </div>
+    ${task.groupId ? `<button class="btn danger btn-sm" style="margin-top:12px;margin-right:6px" onclick="deleteGroup('${task.groupId}');closeDayModal()">删除整组</button>` : ''}
+    <button class="btn danger btn-sm" style="margin-top:12px" onclick="deleteTask('${task.id}');closeDayModal()">删除此任务</button>
+  `;
+
+  document.getElementById('dayModal').classList.add('open');
+}
+
+function openStats() {
+  const totalTasks = state.tasks.length;
+  let totalCompleted = 0;
+  let totalPending = 0;
+  const catStats = {};
+  for (const cat of Object.keys(CATEGORIES)) {
+    catStats[cat] = { tasks: 0, completed: 0, pending: 0 };
+  }
+
+  for (const task of state.tasks) {
+    const cs = catStats[task.category];
+    cs.tasks++;
+    for (const review of task.reviews) {
+      if (review.completed) { totalCompleted++; cs.completed++; }
+      else if (review.date <= state.dateEnd) { totalPending++; cs.pending++; }
+    }
+  }
+
+  const completeRate = totalCompleted + totalPending > 0
+    ? Math.round(totalCompleted / (totalCompleted + totalPending) * 100) : 0;
+
+  let html = `
+    <div class="stat-bar-row">
+      <span class="label">总完成率</span>
+      <div class="bar"><div class="fill" style="width:${completeRate}%;background:var(--success)"></div></div>
+      <span style="font-size:0.8rem;color:var(--text2)">${completeRate}%</span>
+    </div>
+    <div class="stat-bar-row">
+      <span class="label">连续打卡</span>
+      <span style="font-size:0.9rem;color:var(--warning);font-weight:600">🔥 ${state.streak.count} 天</span>
+    </div>
+    <p style="font-size:0.8rem;color:var(--text3);margin-top:8px">
+      总复习 ${totalCompleted + totalPending} 次 · 已完成 ${totalCompleted} 次 · 待完成 ${totalPending} 次
+    </p>
+    <hr style="border-color:var(--border);margin:12px 0">
+    <p style="font-size:0.85rem;font-weight:600;margin-bottom:8px">分类统计</p>
+  `;
+
+  for (const [cat, stats] of Object.entries(catStats)) {
+    if (stats.tasks === 0) continue;
+    const rate = stats.completed + stats.pending > 0
+      ? Math.round(stats.completed / (stats.completed + stats.pending) * 100) : 0;
+    html += `
+      <div class="stat-bar-row">
+        <span class="label">${CATEGORIES[cat].label}</span>
+        <div class="bar"><div class="fill" style="width:${rate}%;background:${CATEGORIES[cat].color}"></div></div>
+        <span style="font-size:0.8rem;color:var(--text2)">${stats.completed}/${stats.completed + stats.pending}</span>
+      </div>
+    `;
+  }
+
+  document.getElementById('statDetails').innerHTML = html;
+  document.getElementById('statsModal').classList.add('open');
+}
+
+function closeStats() {
+  document.getElementById('statsModal').classList.remove('open');
+}
+
+// Close modals on overlay click
+document.getElementById('statsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeStats();
+});
+document.getElementById('dayModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDayModal();
+});
+
+// ═══════════════════════════════════════
+//  Import / Export
+// ═══════════════════════════════════════
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `memory-review-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('数据已导出');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.tasks || !Array.isArray(data.tasks)) throw new Error('Invalid format');
+      if (!confirm(`即将导入 ${data.tasks.length} 个任务，当前数据将被覆盖。确定继续？`)) return;
+      data.currentMonth = new Date(data.currentMonth || data.dateStart || Date.now());
+      if (!data.streak) data.streak = { count: 0, lastDate: null };
+      if (!data.theme) data.theme = 'dark';
+      state = data;
+      saveState();
+      applyTheme();
+      renderAll();
+      toast(`成功导入 ${data.tasks.length} 个任务`);
+    } catch (err) {
+      toast('导入失败：文件格式不正确', 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function exportICS() {
+  let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//MemoryReview//CN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
+  for (const task of state.tasks) {
+    for (const review of task.reviews) {
+      if (review.completed) continue;
+      const dateStr = review.date.replace(/-/g, '');
+      ics += 'BEGIN:VEVENT\r\n';
+      ics += `DTSTART;VALUE=DATE:${dateStr}\r\n`;
+      ics += `DTEND;VALUE=DATE:${dateStr}\r\n`;
+      ics += `SUMMARY:复习: ${task.title} (第${review.reviewNumber}次)\r\n`;
+      ics += `DESCRIPTION:分类: ${CATEGORIES[task.category].label}\\n记忆曲线自动排程\r\n`;
+      ics += 'END:VEVENT\r\n';
+    }
+  }
+  ics += 'END:VCALENDAR\r\n';
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `review-schedule-${todayStr()}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('iCal 文件已导出，可导入系统日历');
+}
+
+// ═══════════════════════════════════════
+//  Theme
+// ═══════════════════════════════════════
+function toggleTheme() {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  saveState();
+  applyTheme();
+}
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.theme);
+  const btn = document.getElementById('themeBtn');
+  btn.textContent = state.theme === 'dark' ? '☀️ 亮色' : '🌙 暗色';
+}
+
+// ═══════════════════════════════════════
+//  Notifications
+// ═══════════════════════════════════════
+function requestNotification() {
+  if (!('Notification' in window)) {
+    toast('此浏览器不支持通知功能', 'error');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    toast('提醒已开启');
+    scheduleNotificationCheck();
+    return;
+  }
+  Notification.requestPermission().then(p => {
+    if (p === 'granted') {
+      toast('提醒已开启，每天会提醒您复习');
+      scheduleNotificationCheck();
+    } else {
+      toast('提醒权限被拒绝', 'error');
+    }
+  });
+}
+
+function scheduleNotificationCheck() {
+  // Check every 30 minutes if there are pending reviews today
+  setInterval(() => {
+    if (Notification.permission !== 'granted') return;
+    const today = todayStr();
+    let pendingCount = 0;
+    for (const task of state.tasks) {
+      for (const review of task.reviews) {
+        if (review.date === today && !review.completed) pendingCount++;
+      }
+    }
+    if (pendingCount > 0) {
+      new Notification('记忆曲线复习提醒', {
+        body: `今天有 ${pendingCount} 项复习任务待完成，别让记忆曲线下滑！`,
+        icon: '',
+        tag: 'review-reminder',
+      });
+    }
+  }, 30 * 60 * 1000);
+}
+
+// ═══════════════════════════════════════
+//  Date Range Change
+// ═══════════════════════════════════════
+function onDateRangeChange() {
+  state.dateStart = document.getElementById('dateStart').value;
+  state.dateEnd = document.getElementById('dateEnd').value;
+  if (!state.dateStart || !state.dateEnd) return;
+
+  // Regenerate all task schedules
+  for (const task of state.tasks) {
+    const completedReviews = task.reviews.filter(r => r.completed);
+    task.reviews = generateSchedule(task.learnDate, state.dateEnd);
+    // Restore completed reviews
+    for (const cr of completedReviews) {
+      const match = task.reviews.find(r => r.date === cr.date && r.reviewNumber === cr.reviewNumber);
+      if (match) {
+        match.completed = true;
+        match.completedDate = cr.completedDate;
+        match.difficulty = cr.difficulty;
+      }
+    }
+  }
+  saveState();
+  renderAll();
+}
+
+// ═══════════════════════════════════════
+//  Utilities
+// ═══════════════════════════════════════
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function toast(msg, type) {
+  type = type || 'success';
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 0.3s';
+    setTimeout(() => el.remove(), 300);
+  }, 2500);
+}
+
+// ═══════════════════════════════════════
+//  Keyboard Shortcuts
+// ═══════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  switch (e.key) {
+    case 'ArrowLeft': navMonth(-1); break;
+    case 'ArrowRight': navMonth(1); break;
+    case 't': navToday(); break;
+    case 'n': document.getElementById('taskTitle').focus(); break;
+    case 'Escape': closeDayModal(); closeStats(); break;
+  }
+});
+
+// ═══════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════
+function init() {
+  document.getElementById('dateStart').value = state.dateStart;
+  document.getElementById('dateEnd').value = state.dateEnd;
+  document.getElementById('taskLearnDate').value = todayStr();
+  applyTheme();
+  renderAll();
+
+  // Auto-request notification if already granted
+  if ('Notification' in window && Notification.permission === 'granted') {
+    scheduleNotificationCheck();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
