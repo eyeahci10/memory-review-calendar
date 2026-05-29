@@ -614,12 +614,13 @@
                 <label>排程方式</label>
                 <select id="outlineSchedule">
                   <option value="sequential">按顺序每天一项</option>
+                  <option value="perDay">每天 N 项</option>
                   <option value="spaced">间隔 N 天排一项</option>
                   <option value="sameDay">全部同一天开始</option>
                 </select>
               </div>
               <div class="form-group" id="outlineIntervalGrp" style="display:none">
-                <label>间隔天数</label>
+                <label id="outlineIntervalLabel">间隔天数</label>
                 <input type="number" id="outlineInterval" value="2" min="1" max="30" style="width:100%">
               </div>
             </div>
@@ -899,7 +900,9 @@ function switchSplitTab(tab) {
 (function() {
   const sel = document.getElementById('outlineSchedule');
   if (sel) sel.addEventListener('change', () => {
-    document.getElementById('outlineIntervalGrp').style.display = sel.value === 'spaced' ? 'block' : 'none';
+    const show = sel.value === 'spaced' || sel.value === 'perDay';
+    document.getElementById('outlineIntervalGrp').style.display = show ? 'block' : 'none';
+    document.getElementById('outlineIntervalLabel').textContent = sel.value === 'perDay' ? '每日项数' : '间隔天数';
     parseOutline();
   });
 })();
@@ -994,8 +997,10 @@ function parseOutline() {
   }
 
   // Update schedule mode visibility
-  const scheduleMode = document.getElementById('outlineSchedule').value;
-  document.getElementById('outlineIntervalGrp').style.display = scheduleMode === 'spaced' ? 'block' : 'none';
+  const sm = document.getElementById('outlineSchedule').value;
+  const show = sm === 'spaced' || sm === 'perDay';
+  document.getElementById('outlineIntervalGrp').style.display = show ? 'block' : 'none';
+  document.getElementById('outlineIntervalLabel').textContent = sm === 'perDay' ? '每日项数' : '间隔天数';
 }
 
 function addTask() {
@@ -1029,6 +1034,9 @@ function addTask() {
           subLearnDate = learnDate;
         } else if (scheduleMode === 'spaced') {
           subLearnDate = toDateStr(addDays(startDate, i * interval));
+        } else if (scheduleMode === 'perDay') {
+          const daysOffset = Math.floor(i / interval);
+          subLearnDate = toDateStr(addDays(startDate, daysOffset));
         } else {
           // sequential: one per day
           subLearnDate = toDateStr(addDays(startDate, i));
